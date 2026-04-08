@@ -40,4 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.md
+data.              <Grid item xs={12} md={4} key={feature.title}>
+
