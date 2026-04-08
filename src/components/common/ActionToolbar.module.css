@@ -1,0 +1,79 @@
+.toolbar {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 24px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  color: white;
+}
+
+.countInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.badge {
+  background: var(--accent-primary, #3b82f6);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.actionsGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actionBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.deleteBtn {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.deleteBtn:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}

@@ -20,6 +20,85 @@ export const TaskController = {
   },
 
   /**
+   * Search and filter tasks with sorting
+   */
+  async searchTasks(options?: {
+    query?: string;
+    conversationId?: string;
+    isCompleted?: boolean;
+    sortBy?: string;
+    order?: 'asc' | 'desc';
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: SharedTask[], count: number }> {
+    let query = supabase.from('shared_tasks').select('*', { count: 'exact' });
+
+    if (options?.query) {
+      query = query.ilike('title', `%${options.query}%`);
+    }
+
+    if (options?.conversationId) {
+      query = query.eq('conversation_id', options.conversationId);
+    }
+
+    if (options?.isCompleted !== undefined) {
+      query = query.eq('is_completed', options.isCompleted);
+    }
+
+    if (options?.sortBy) {
+      query = query.order(options.sortBy, { ascending: options.order === 'asc' });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    if (options?.limit) {
+      const from = options.offset || 0;
+      const to = from + options.limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error searching tasks:', error);
+      return { data: [], count: 0 };
+    }
+    return { data: data || [], count: count || 0 };
+  },
+
+  /**
+   * Bulk delete tasks
+   */
+  async bulkDeleteTasks(taskIds: string[]): Promise<boolean> {
+    const { error } = await supabase
+      .from('shared_tasks')
+      .delete()
+      .in('id', taskIds);
+
+    if (error) {
+      console.error('Error bulk deleting tasks:', error);
+      return false;
+    }
+    return true;
+  },
+
+  /**
+   * Delete a single task
+   */
+  async deleteTask(taskId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('shared_tasks')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) {
+      console.error('Error deleting task:', error);
+      return false;
+    }
+    return true;
+  },
+
+  /**
    * Create or update a task
    */
   async upsertTask(task: Partial<SharedTask>): Promise<SharedTask | null> {

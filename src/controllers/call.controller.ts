@@ -20,6 +20,39 @@ export const CallController = {
   },
 
   /**
+   * Get call history with filtering and sorting
+   */
+  async getCallLogs(options?: {
+    query?: string;
+    sortBy?: string;
+    order?: 'asc' | 'desc';
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: VideoCall[], count: number }> {
+    let query = supabase.from('video_calls').select('*', { count: 'exact' });
+
+    if (options?.sortBy) {
+      query = query.order(options.sortBy, { ascending: options.order === 'asc' });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    if (options?.limit) {
+      const from = options.offset || 0;
+      const to = from + options.limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching call logs:', error);
+      return { data: [], count: 0 };
+    }
+    return { data: data || [], count: count || 0 };
+  },
+
+  /**
    * Get call history for a message
    */
   async getCallByMessageId(messageId: string): Promise<VideoCall | null> {

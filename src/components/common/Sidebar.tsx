@@ -11,7 +11,14 @@ import {
   Settings, 
   ShieldAlert,
   LogOut,
-  Infinity
+  Infinity,
+  PhoneCall,
+  Share2,
+  Hash,
+  Smartphone,
+  FileText,
+  UserPlus,
+  Smile
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -19,9 +26,14 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Users, label: 'Users', href: '/users' },
   { icon: MessageSquare, label: 'Conversations', href: '/conversations' },
+  { icon: Hash, label: 'Messages', href: '/messages' },
+  { icon: PhoneCall, label: 'Calls', href: '/calls' },
   { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
-  { icon: ShieldAlert, label: 'Security', href: '/security' },
-  { icon: Settings, label: 'Settings', href: '/settings' },
+  { icon: Share2, label: 'Social', href: '/social' },
+  { icon: Smartphone, label: 'Devices', href: '/devices' },
+  { icon: FileText, label: 'Attachments', href: '/attachments' },
+  { icon: UserPlus, label: 'Participants', href: '/participants' },
+  { icon: Smile, label: 'Reactions', href: '/reactions' },
 ];
 
 export default function Sidebar() {

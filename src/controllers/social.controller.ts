@@ -3,6 +3,70 @@ import { FriendRequest, Friend } from '@/models/social.model';
 
 export const SocialController = {
   /**
+   * Search all friend relationships with filtering and sorting
+   */
+  async searchFriends(options?: {
+    query?: string;
+    sortBy?: string;
+    order?: 'asc' | 'desc';
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: Friend[], count: number }> {
+    let query = supabase.from('friends').select('*', { count: 'exact' });
+
+    if (options?.sortBy) {
+      query = query.order(options.sortBy, { ascending: options.order === 'asc' });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    if (options?.limit) {
+      const from = options.offset || 0;
+      const to = from + options.limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
+    if (error) {
+      console.error('Error searching friends:', error);
+      return { data: [], count: 0 };
+    }
+    return { data: data || [], count: count || 0 };
+  },
+
+  /**
+   * Search all friend requests
+   */
+  async searchFriendRequests(options?: {
+    query?: string;
+    sortBy?: string;
+    order?: 'asc' | 'desc';
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: FriendRequest[], count: number }> {
+    let query = supabase.from('friend_requests').select('*', { count: 'exact' });
+
+    if (options?.sortBy) {
+      query = query.order(options.sortBy, { ascending: options.order === 'asc' });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    if (options?.limit) {
+      const from = options.offset || 0;
+      const to = from + options.limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
+    if (error) {
+      console.error('Error searching friend requests:', error);
+      return { data: [], count: 0 };
+    }
+    return { data: data || [], count: count || 0 };
+  },
+
+  /**
    * Get friend requests for current user
    */
   async getFriendRequests(userId: string): Promise<FriendRequest[]> {

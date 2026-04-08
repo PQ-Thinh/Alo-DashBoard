@@ -39,6 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+npm run dev         
 
-data.              <Grid item xs={12} md={4} key={feature.title}>
 
+data.md
+AGENTS.md
+CLAUDE.md
