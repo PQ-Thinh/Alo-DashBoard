@@ -100,3 +100,24 @@
   font-size: 0.75rem;
   opacity: 0.6;
 }
+
+.logoutBtn {
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.logoutBtn:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}

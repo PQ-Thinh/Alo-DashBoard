@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Layout from "@/components/common/Layout";
+import AuthProvider from "@/components/auth/AuthProvider";
+import { ThemeProvider } from "@/components/common/ThemeContext";
 
 export const metadata: Metadata = {
-  title: "Alo Dashboard | Admin Management",
-  description: "Secure administrative dashboard for the Alo messaging application.",
+  title: "Alo Admin Dashboard",
+  description: "Hệ thống quản trị thông minh cho ứng dụng Alo",
 };
 
 export default function RootLayout({
@@ -13,9 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="vi" suppressHydrationWarning>
       <body>
-        <Layout>{children}</Layout>
+        <ThemeProvider>
+          <AuthProvider>
+            <Layout>{children}</Layout>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

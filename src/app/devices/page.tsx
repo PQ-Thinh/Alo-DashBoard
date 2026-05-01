@@ -4,11 +4,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { UserController } from '@/controllers/user.controller';
 import { UserDevice } from '@/models/user.model';
 import DataTable, { Column } from '@/components/common/DataTable';
-import FilterBar from '@/components/common/FilterBar';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EntityModal from '@/components/common/EntityModal';
-import { Trash2, Smartphone, Cpu, Bell, Calendar } from 'lucide-react';
+import { Trash2, Smartphone, Bell, Calendar, Search, Cpu } from 'lucide-react';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState<UserDevice[]>([]);
@@ -23,7 +22,7 @@ export default function DevicesPage() {
     query: '',
     sortBy: 'created_at',
     order: 'desc' as 'asc' | 'desc',
-    limit: 10,
+    limit: 5,
     offset: 0
   });
 
@@ -47,11 +46,6 @@ export default function DevicesPage() {
     setOptions(prev => ({ ...prev, sortBy: key, order }));
   };
 
-  const handleDeleteClick = (id: string) => {
-    setDeviceToDelete(id);
-    setIsDeleteModalOpen(true);
-  };
-
   const confirmDelete = async () => {
     if (deviceToDelete) {
       const success = await UserController.deleteDevice(deviceToDelete);
@@ -63,62 +57,74 @@ export default function DevicesPage() {
         fetchDevices();
       }
     }
+    setIsDeleteModalOpen(false);
   };
 
   const columns: Column<UserDevice>[] = [
     { 
       key: 'device_name', 
-      header: 'Device', 
+      header: 'Thiết bị', 
       sortable: true,
       render: (device) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ color: 'var(--text-secondary)' }}><Smartphone size={18} /></div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+            <Smartphone size={20} />
+          </div>
           <div>
-            <div style={{ fontWeight: 600 }}>{device.device_name || 'Generic Device'}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {device.id.substring(0, 8)}...</div>
+            <div className="font-bold text-slate-900 dark:text-white leading-tight">{device.device_name || 'Thiết bị không tên'}</div>
+            <div className="text-xs text-slate-500 font-medium tracking-wider uppercase">ID: {device.id.substring(0, 8)}</div>
           </div>
         </div>
       )
     },
     { 
       key: 'user_id', 
-      header: 'User ID', 
-      render: (device) => <div style={{ fontSize: '0.85rem' }}>{device.user_id}</div>
+      header: 'ID Người dùng', 
+      render: (device) => <div className="text-sm font-mono text-slate-500">{device.user_id}</div>
     },
     { 
       key: 'fcm_token', 
       header: 'FCM Token', 
       render: (device) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-          <Bell size={14} />
-          <span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{device.fcm_token}</span>
+        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium italic">
+          <Bell size={12} className="opacity-50" />
+          <span className="max-w-[200px] truncate">{device.fcm_token}</span>
         </div>
       )
     },
     { 
       key: 'created_at', 
-      header: 'Registered', 
+      header: 'Ngày đăng ký', 
       sortable: true,
       render: (device) => (
-        <div style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Calendar size={14} style={{ opacity: 0.5 }} />
-          {device.created_at ? new Date(device.created_at).toLocaleDateString() : 'N/A'}
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+          <Calendar size={14} className="opacity-50" />
+          {device.created_at ? new Date(device.created_at).toLocaleDateString('vi-VN') : 'N/A'}
         </div>
       )
     }
   ];
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Device Management</h1>
-        <p className="page-description">Monitor and manage user devices and push notification tokens for security and auditing.</p>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Quản lý thiết bị</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Giám sát các thiết bị đã đăng ký nhận thông báo đẩy.</p>
+        </div>
       </div>
 
-      <FilterBar 
-        onSearch={handleSearch}
-        onReset={() => setOptions({ query: '', sortBy: 'created_at', order: 'desc', limit: 10, offset: 0 })}
-      />
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm thiết bị hoặc token..." 
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm transition-all"
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+        </div>
+      </div>
 
       <DataTable 
         columns={columns}
@@ -133,11 +139,11 @@ export default function DevicesPage() {
         onPageChange={(page) => setOptions(prev => ({ ...prev, offset: (page - 1) * options.limit }))}
         actions={(device) => (
           <button 
-            className="icon-btn danger" 
-            onClick={(e) => { e.stopPropagation(); handleDeleteClick(device.id); }}
-            title="Delete Device"
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all" 
+            onClick={(e) => { e.stopPropagation(); setDeviceToDelete(device.id); setIsDeleteModalOpen(true); }}
+            title="Xóa thiết bị"
           >
-            <Trash2 size={18} />
+            <Trash2 size={16} />
           </button>
         )}
       />
@@ -151,16 +157,16 @@ export default function DevicesPage() {
         isOpen={!!selectedDevice}
         onClose={() => setSelectedDevice(null)}
         entity={selectedDevice}
-        title="Device Details"
+        title="Chi tiết thiết bị"
       />
 
       <ConfirmModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title={deviceToDelete ? 'Delete Device' : 'Bulk Delete'}
-        message="Are you sure you want to delete the selected device(s)? This will disable push notifications for those devices until they register again."
-        confirmLabel="Delete"
+        title={deviceToDelete ? 'Xóa thiết bị' : 'Xóa hàng loạt'}
+        message="Bạn có chắc chắn muốn xóa thiết bị này? Người dùng sẽ không nhận được thông báo đẩy trên thiết bị này cho đến khi đăng ký lại."
+        confirmLabel="Xóa ngay"
         type="danger"
       />
     </div>

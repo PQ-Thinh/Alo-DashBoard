@@ -1,6 +1,8 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { X, Save, Edit3, Eye } from 'lucide-react';
-import styles from './EntityModal.module.css';
+import { X, Save, Edit3, Eye, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface EntityModalProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface EntityModalProps {
   title: string;
   onSave?: (updatedEntity: any) => Promise<boolean>;
   readOnlyFields?: string[];
+  mode?: 'view' | 'edit' | 'create';
 }
 
 export default function EntityModal({
@@ -17,20 +20,23 @@ export default function EntityModal({
   entity,
   title,
   onSave,
-  readOnlyFields = ['id', 'created_at', 'updated_at', 'conversation_id', 'current_user_id']
+  readOnlyFields = ['id', 'created_at', 'updated_at', 'conversation_id', 'current_user_id'],
+  mode = 'view'
 }: EntityModalProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [currentMode, setCurrentMode] = useState<'view' | 'edit' | 'create'>(mode);
   const [formData, setFormData] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    setCurrentMode(mode);
     if (entity) {
       setFormData({ ...entity });
-      setIsEditing(false);
+    } else {
+      setFormData({});
     }
-  }, [entity]);
+  }, [entity, mode, isOpen]);
 
-  if (!isOpen || !entity) return null;
+  if (!isOpen) return null;
 
   const handleChange = (key: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [key]: value }));
@@ -41,41 +47,55 @@ export default function EntityModal({
     setIsSaving(true);
     const success = await onSave(formData);
     if (success) {
-      setIsEditing(false);
+      onClose();
     }
     setIsSaving(false);
   };
 
   const renderField = (key: string, value: any) => {
     const isReadOnly = readOnlyFields.includes(key);
+    const isEditing = currentMode !== 'view';
     
-    // Skip internal fields if not editing
-    if (!isEditing && (key.includes('key') || key.includes('hash'))) return null;
+    if (currentMode === 'view' && (key.includes('key') || key.includes('hash') || key === 'fts_search')) return null;
 
     return (
-      <div key={key} className={styles.fieldGroup}>
-        <label className={styles.label}>{key.replace(/_/g, ' ')}</label>
+      <div key={key} className="flex flex-col gap-2">
+        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
+          {key.replace(/_/g, ' ')}
+        </label>
+        
         {isEditing && !isReadOnly ? (
-          typeof value === 'boolean' ? (
+          key === 'role' ? (
             <select 
-              className={styles.input} 
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-medium" 
+              value={formData[key] || 'user'} 
+              onChange={(e) => handleChange(key, e.target.value)}
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+          ) : typeof value === 'boolean' ? (
+            <select 
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-medium" 
               value={String(formData[key])} 
               onChange={(e) => handleChange(key, e.target.value === 'true')}
             >
-              <option value="true">True</option>
-              <option value="false">False</option>
+              <option value="true">True / Nam</option>
+              <option value="false">False / Nữ</option>
             </select>
           ) : (
             <input 
-              className={styles.input} 
-              type="text" 
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-medium" 
+              type={key === 'email' ? 'email' : 'text'} 
               value={formData[key] || ''} 
               onChange={(e) => handleChange(key, e.target.value)}
+              placeholder={`Nhập ${key.replace(/_/g, ' ')}...`}
             />
           )
         ) : (
-          <div className={`${styles.valueDisplay} ${isReadOnly ? styles.readOnly : ''}`}>
-            {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? 'N/A')}
+          <div className={`px-4 py-2.5 bg-slate-50/50 dark:bg-slate-800/30 border border-transparent rounded-xl text-sm font-semibold text-slate-900 dark:text-white ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`}>
+            {typeof value === 'boolean' ? (value ? 'Yes / Nam' : 'No / Nữ') : String(value ?? 'N/A')}
           </div>
         )}
       </div>
@@ -83,51 +103,79 @@ export default function EntityModal({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div className={styles.titleGroup}>
-            <h2 className={styles.title}>{title}</h2>
-            <span className={styles.subtitle}>ID: {entity.id || entity.conversation_id}</span>
-          </div>
-          <div className={styles.headerActions}>
-            {onSave && (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
+        />
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-white/20 dark:border-white/5"
+        >
+          {/* Header */}
+          <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+            <div>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{title}</h2>
+              {entity?.id && <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-widest">ID: {entity.id}</p>}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {onSave && currentMode === 'view' && (
+                <button 
+                  onClick={() => setCurrentMode('edit')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all font-bold text-sm"
+                >
+                  <Edit3 size={16} />
+                  Chỉnh sửa
+                </button>
+              )}
               <button 
-                className={`${styles.actionBtn} ${isEditing ? styles.active : ''}`}
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={onClose}
+                className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 transition-all"
               >
-                {isEditing ? <Eye size={18} /> : <Edit3 size={18} />}
-                <span>{isEditing ? 'View Mode' : 'Edit Mode'}</span>
+                <X size={20} />
               </button>
-            )}
-            <button className={styles.closeBtn} onClick={onClose}>
-              <X size={20} />
-            </button>
+            </div>
           </div>
-        </div>
 
-        <div className={`${styles.content} custom-scrollbar`}>
-          <div className={styles.grid}>
-            {Object.entries(formData).map(([key, value]) => renderField(key, value))}
+          {/* Content */}
+          <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {Object.entries(formData).map(([key, value]) => renderField(key, value))}
+              {currentMode === 'create' && Object.keys(formData).length === 0 && (
+                <p className="text-slate-500 text-sm italic">Vui lòng nhập các thông tin cần thiết...</p>
+              )}
+            </div>
           </div>
-        </div>
 
-        {isEditing && (
-          <div className={styles.footer}>
-            <button className={styles.cancelBtn} onClick={() => setIsEditing(false)}>
-              Cancel
-            </button>
-            <button 
-              className={styles.saveBtn} 
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <Save size={18} />
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        )}
+          {/* Footer */}
+          {currentMode !== 'view' && (
+            <div className="px-8 py-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end gap-3">
+              <button 
+                onClick={currentMode === 'create' ? onClose : () => setCurrentMode('view')}
+                className="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                {currentMode === 'create' ? 'Tạo mới' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          )}
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 }

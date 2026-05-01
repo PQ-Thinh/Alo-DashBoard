@@ -12,6 +12,7 @@ export interface User {
   public_encrypt_key: string;
   public_sign_key: string;
   last_seen?: string; // ISO Timestamp
+  role?: 'user' | 'admin' | 'super_admin';
   created_at?: string;
   updated_at?: string;
 }

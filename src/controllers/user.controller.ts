@@ -36,6 +36,21 @@ export const UserController = {
   },
 
   /**
+   * Create a new user (Note: Usually requires auth user creation first)
+   */
+  async createUser(userData: Partial<User>): Promise<boolean> {
+    const { error } = await supabase
+      .from('users')
+      .insert([userData]);
+
+    if (error) {
+      console.error('Error creating user:', error);
+      return false;
+    }
+    return true;
+  },
+
+  /**
    * Search users by username or display name
    */
   async searchUsers(query: string): Promise<User[]> {
