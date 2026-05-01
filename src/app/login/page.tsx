@@ -44,7 +44,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       const webClientId = process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-      
+
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -65,30 +65,25 @@ export default function LoginPage() {
 
   return (
     <div className={styles.container}>
-      {/* Hiệu ứng dòng tin nhắn bay vô tận */}
-      <div className={styles.messageStream}>
-        {[...Array(12)].map((_, i) => (
-          <div key={i} className={`${styles.streamItem} ${styles[`item${(i % 4) + 1}`]}`}>
-            {i % 2 === 0 ? 'Dự án đã hoàn thành! 🚀' : 'Họp lúc 2h nhé?'}
-          </div>
-        ))}
-        {[...Array(12)].map((_, i) => (
-          <div key={i + 12} className={`${styles.streamItem} ${styles[`item${(i % 4) + 1}`]}`} style={{ animationDelay: '4s' }}>
-            {i % 3 === 0 ? 'Check mail giúp mình' : 'Chào buổi sáng! ☀️'}
-          </div>
-        ))}
+      {/* Hiệu ứng nền app chat */}
+      <div className={styles.backgroundDecor}>
+        <div className={`${styles.bubble} ${styles.bubble1}`}>Xin chào! 👋</div>
+        <div className={`${styles.bubble} ${styles.bubble2}`}>Bạn có đó không?</div>
+        <div className={`${styles.bubble} ${styles.bubble3}`}>Cuộc họp bắt đầu lúc 9h nhé.</div>
+        <div className={styles.circle1}></div>
+        <div className={styles.circle2}></div>
       </div>
 
       <div className={styles.loginCard}>
         <div className={styles.header}>
           <div className={styles.logoIcon}>A</div>
-          <h1>Alo Admin</h1>
-          <p>Hệ thống quản trị thông minh</p>
+          <h1>Alo Dashboard</h1>
+          <p>Chào mừng quay trở lại!</p>
         </div>
 
         <form onSubmit={handleLogin} className={styles.form}>
           <div className={styles.inputGroup}>
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email quản trị</label>
             <input
               id="email"
               type="email"
@@ -122,7 +117,7 @@ export default function LoginPage() {
           <span>HOẶC</span>
         </div>
 
-        <button onClick={handleGoogleLogin} className={styles.googleButton}>
+        <button onClick={handleGoogleLogin} className={styles.googleButton} >
           <img src="/google-icon.svg" alt="Google" width={18} height={18} />
           <span>Tiếp tục với Google</span>
         </button>
