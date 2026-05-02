@@ -12,13 +12,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { user } = useAuth();
+  // Wait for auth loading to finish before redirecting.
+  // If we redirect immediately while authLoading=true, the stale user
+  // state from before logout causes an infinite loop.
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (user) {
+    if (!authLoading && user) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
 import { User, UserDevice } from '@/models/user.model';
+import { getCached, setCached, invalidateCache } from '@/lib/cache';
 
 export const UserController = {
   /**
@@ -77,23 +78,21 @@ export const UserController = {
     limit?: number;
     offset?: number;
   }): Promise<{ data: User[], count: number }> {
+    const cacheKey = `users:${JSON.stringify(options)}`;
+    const cached = getCached<{ data: User[], count: number }>(cacheKey);
+    if (cached) return cached;
+
     let query = supabase.from('users').select('*', { count: 'exact' });
 
     if (options?.query) {
       query = query.or(`username.ilike.%${options.query}%,display_name.ilike.%${options.query}%`);
     }
 
-    if (options?.sortBy) {
-      query = query.order(options.sortBy, { ascending: options.order === 'asc' });
-    } else {
-      query = query.order('created_at', { ascending: false });
-    }
+    query = query.order(options?.sortBy || 'created_at', { ascending: options?.order === 'asc' });
 
-    if (options?.limit) {
-      const from = options.offset || 0;
-      const to = from + options.limit - 1;
-      query = query.range(from, to);
-    }
+    const limit = options?.limit ?? 5;
+    const from = options?.offset ?? 0;
+    query = query.range(from, from + limit - 1).limit(limit);
 
     const { data, error, count } = await query;
 
@@ -101,7 +100,9 @@ export const UserController = {
       console.error('Error fetching users:', error);
       return { data: [], count: 0 };
     }
-    return { data: data || [], count: count || 0 };
+    const result = { data: data || [], count: count || 0 };
+    setCached(cacheKey, result);
+    return result;
   },
 
   /**
@@ -117,6 +118,7 @@ export const UserController = {
       console.error('Error bulk deleting users:', error);
       return false;
     }
+    invalidateCache('users:');
     return true;
   },
 
@@ -133,6 +135,7 @@ export const UserController = {
       console.error('Error deleting user:', error);
       return false;
     }
+    invalidateCache('users:');
     return true;
   },
 
@@ -160,23 +163,21 @@ export const UserController = {
     limit?: number;
     offset?: number;
   }): Promise<{ data: UserDevice[], count: number }> {
+    const cacheKey = `devices:${JSON.stringify(options)}`;
+    const cached = getCached<{ data: UserDevice[], count: number }>(cacheKey);
+    if (cached) return cached;
+
     let query = supabase.from('user_devices').select('*', { count: 'exact' });
 
     if (options?.query) {
       query = query.or(`device_name.ilike.%${options.query}%,fcm_token.ilike.%${options.query}%`);
     }
 
-    if (options?.sortBy) {
-      query = query.order(options.sortBy, { ascending: options.order === 'asc' });
-    } else {
-      query = query.order('created_at', { ascending: false });
-    }
+    query = query.order(options?.sortBy || 'created_at', { ascending: options?.order === 'asc' });
 
-    if (options?.limit) {
-      const from = options.offset || 0;
-      const to = from + options.limit - 1;
-      query = query.range(from, to);
-    }
+    const limit = options?.limit ?? 5;
+    const from = options?.offset ?? 0;
+    query = query.range(from, from + limit - 1).limit(limit);
 
     const { data, error, count } = await query;
 
@@ -184,7 +185,9 @@ export const UserController = {
       console.error('Error fetching devices:', error);
       return { data: [], count: 0 };
     }
-    return { data: data || [], count: count || 0 };
+    const result = { data: data || [], count: count || 0 };
+    setCached(cacheKey, result);
+    return result;
   },
 
   /**

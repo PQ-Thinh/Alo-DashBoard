@@ -7,11 +7,11 @@ import DataTable, { Column } from '@/components/common/DataTable';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EntityModal from '@/components/common/EntityModal';
-import { Trash2, UserPlus, Mail, Edit2, Calendar, Search } from 'lucide-react';
+import { Trash2, UserPlus, Mail, Edit2, Search, Filter, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function UsersPage() {
-  const { role: currentUserRole } = useAuth();
+  const { canManageRoles } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,11 +30,16 @@ export default function UsersPage() {
   });
 
   const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
-    const { data, count } = await UserController.getUsers(options);
-    setUsers(data);
-    setTotalCount(count);
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const { data, count } = await UserController.getUsers(options);
+      setUsers(data);
+      setTotalCount(count);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [options]);
 
   useEffect(() => {
@@ -47,16 +52,6 @@ export default function UsersPage() {
 
   const handleSort = (key: string, order: 'asc' | 'desc') => {
     setOptions(prev => ({ ...prev, sortBy: key, order }));
-  };
-
-  const handleCreateClick = () => {
-    setSelectedUser(null);
-    setModalMode('create');
-  };
-
-  const handleEditClick = (user: User) => {
-    setSelectedUser(user);
-    setModalMode('edit');
   };
 
   const handleSaveUser = async (userData: any) => {
@@ -91,20 +86,20 @@ export default function UsersPage() {
   const columns: Column<User>[] = [
     { 
       key: 'display_name', 
-      header: 'User', 
+      header: 'Member', 
       sortable: true,
       render: (user) => (
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-foreground text-background-base flex items-center justify-center font-black text-sm border border-foreground/10 shrink-0 overflow-hidden">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center font-bold text-xs text-zinc-950 dark:text-white border border-zinc-200 dark:border-zinc-700 overflow-hidden">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
               user.display_name?.[0] || '?'
             )}
           </div>
-          <div>
-            <div className="font-bold text-foreground leading-tight tracking-tight">{user.display_name}</div>
-            <div className="text-[10px] text-foreground/40 font-black uppercase tracking-widest mt-0.5">@{user.username}</div>
+          <div className="flex flex-col">
+            <span className="font-bold text-zinc-950 dark:text-white text-sm">{user.display_name}</span>
+            <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">@{user.username}</span>
           </div>
         </div>
       )
@@ -115,26 +110,38 @@ export default function UsersPage() {
       sortable: true,
       render: (user) => {
         const role = user.role || 'user';
-        const styles: any = {
-          super_admin: 'bg-foreground text-background-base border-foreground',
-          admin: 'bg-foreground/10 text-foreground border-foreground/20',
-          user: 'bg-transparent text-foreground/40 border-foreground/10',
+        const badgeClass: any = {
+          super_admin: 'badge-error',
+          admin: 'badge-blue',
+          user: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700',
         };
+        // Only super_admin can change roles
+        if (!canManageRoles) {
+          return <span className={`badge ${badgeClass[role]}`}>{role.replace('_', ' ')}</span>;
+        }
         return (
-          <span className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-[0.15em] border ${styles[role]}`}>
-            {role.replace('_', ' ')}
-          </span>
+          <select
+            defaultValue={role}
+            onChange={async (e) => {
+              await UserController.updateProfile(user.id, { role: e.target.value as any });
+              fetchUsers();
+            }}
+            className="text-xs font-bold bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 cursor-pointer outline-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+            <option value="super_admin">super admin</option>
+          </select>
         );
       }
     },
     { 
       key: 'email', 
-      header: 'Contact', 
+      header: 'Email', 
       sortable: true,
       render: (user) => (
-        <div className="text-sm font-medium text-foreground/60 tracking-tight">
-          {user.email}
-        </div>
+        <span className="text-zinc-700 dark:text-zinc-400 font-medium text-sm">{user.email}</span>
       )
     },
     { 
@@ -142,84 +149,78 @@ export default function UsersPage() {
       header: 'Joined', 
       sortable: true,
       render: (user) => (
-        <div className="text-xs text-foreground/30 font-bold">
+        <span className="text-zinc-600 dark:text-zinc-500 font-medium text-xs">
           {user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
-        </div>
+        </span>
       )
     }
   ];
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto pb-20">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-surface-base p-10 rounded-3xl border border-surface-border shadow-sm">
+    <div className="space-y-6 animate-in pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-foreground">User Directory</h1>
-          <p className="text-foreground/40 font-medium mt-2">Manage access and profile details for all platform members.</p>
+          <h1 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white">User Management</h1>
+          <p className="text-zinc-500 font-medium text-sm mt-0.5">Invite, manage, and monitor your platform members.</p>
         </div>
         <button 
-          onClick={handleCreateClick}
-          className="flex items-center justify-center gap-2 px-6 py-3 bg-foreground text-background-base rounded-xl font-bold text-sm hover:opacity-80 transition-all shadow-lg"
+          onClick={() => { setSelectedUser(null); setModalMode('create'); }}
+          className="btn-primary text-sm flex items-center gap-2"
         >
-          <UserPlus size={18} />
-          Add Member
+          <UserPlus size={16} />
+          Add User
         </button>
       </div>
 
-      <div className="flex items-center gap-6 bg-surface-base p-2 px-6 rounded-2xl border border-surface-border shadow-sm">
-        <div className="relative flex-1">
-          <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-foreground/20" size={16} />
+      <div className="flex flex-col md:flex-row items-center gap-3 bg-white dark:bg-zinc-900 p-3 rounded-xl border-2 border-zinc-300 dark:border-zinc-700 shadow-md">
+        <div className="relative flex-1 group w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-zinc-950 dark:group-focus-within:text-white transition-colors" size={15} />
           <input 
             type="text" 
-            placeholder="Search by name or email..." 
-            className="w-full pl-8 pr-4 py-4 bg-transparent border-none outline-none text-sm font-medium placeholder:text-foreground/10"
+            placeholder="Search members by name or username..." 
+            className="w-full h-10 pl-10 pr-4 bg-zinc-100 dark:bg-zinc-950 border-transparent focus:bg-white dark:focus:bg-zinc-900 border focus:border-zinc-300 dark:focus:border-zinc-700 rounded-lg text-sm outline-none transition-all font-medium"
             onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
-        <div className="h-6 w-[1px] bg-foreground/10"></div>
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-black text-foreground/20 uppercase tracking-widest">Sort:</span>
-          <select 
-            className="bg-transparent border-none text-xs font-black uppercase tracking-wider outline-none cursor-pointer"
-            onChange={(e) => handleSort(e.target.value, options.order)}
-          >
-            <option value="created_at">Recent</option>
-            <option value="display_name">Name</option>
-            <option value="role">Role</option>
-          </select>
-        </div>
+        <button className="h-10 px-4 flex items-center gap-2 bg-zinc-100 dark:bg-zinc-950 border-2 border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 rounded-lg text-sm font-bold text-zinc-600 dark:text-zinc-400 transition-all w-full md:w-auto">
+          <Filter size={14} />
+          <span>Filter</span>
+          <ChevronDown size={14} className="ml-auto md:ml-0" />
+        </button>
       </div>
 
-      <DataTable 
-        columns={columns}
-        data={users}
-        isLoading={isLoading}
-        onSort={handleSort}
-        onRowSelect={setSelectedIds}
-        onRowClick={(user) => {
-          setSelectedUser(user);
-          setModalMode('view');
-        }}
-        totalCount={totalCount}
-        pageSize={options.limit}
-        currentPage={Math.floor(options.offset / options.limit) + 1}
-        onPageChange={(page) => setOptions(prev => ({ ...prev, offset: (page - 1) * options.limit }))}
-        actions={(user) => (
-          <div className="flex gap-1">
-            <button 
-              className="p-2 text-foreground/20 hover:text-foreground hover:bg-foreground/5 rounded-lg transition-all" 
-              onClick={(e) => { e.stopPropagation(); handleEditClick(user); }}
-            >
-              <Edit2 size={16} />
-            </button>
-            <button 
-              className="p-2 text-foreground/20 hover:text-foreground hover:bg-foreground/5 rounded-lg transition-all" 
-              onClick={(e) => { e.stopPropagation(); { setUserToDelete(user.id); setIsDeleteModalOpen(true); } }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        )}
-      />
+      <div className="bg-white dark:bg-zinc-900 rounded-xl overflow-hidden">
+        <DataTable 
+          columns={columns}
+          data={users}
+          isLoading={isLoading}
+          onSort={handleSort}
+          onRowSelect={setSelectedIds}
+          onRowClick={(u) => { setSelectedUser(u); setModalMode('view'); }}
+          totalCount={totalCount}
+          pageSize={options.limit}
+          currentPage={Math.floor(options.offset / options.limit) + 1}
+          onPageChange={(page) => setOptions(prev => ({ ...prev, offset: (page - 1) * options.limit }))}
+          actions={(user) => (
+            <div className="flex items-center gap-1">
+              <button 
+                className="p-2 text-indigo-600 dark:text-amber-400 hover:bg-indigo-100 dark:hover:bg-amber-400/20 rounded-xl transition-all group/btn"
+                onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setModalMode('edit'); }}
+                title="Edit User"
+              >
+                <Edit2 size={16} strokeWidth={2.5} />
+              </button>
+              <button 
+                className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-xl transition-all group/btn" 
+                onClick={(e) => { e.stopPropagation(); setUserToDelete(user.id); setIsDeleteModalOpen(true); }}
+                title="Delete User"
+              >
+                <Trash2 size={16} strokeWidth={2.5} />
+              </button>
+            </div>
+          )}
+        />
+      </div>
 
       <ActionToolbar 
         selectedCount={selectedIds.length}
@@ -230,22 +231,19 @@ export default function UsersPage() {
         isOpen={!!selectedUser || modalMode === 'create'}
         onClose={() => { setSelectedUser(null); setModalMode('view'); }}
         entity={selectedUser}
-        title={modalMode === 'create' ? 'Create Member' : 'Member Details'}
+        title={modalMode === 'create' ? 'Create User' : 'User Information'}
         mode={modalMode}
         onSave={handleSaveUser}
-        readOnlyFields={currentUserRole !== 'super_admin' ? ['id', 'created_at', 'updated_at', 'role'] : ['id', 'created_at', 'updated_at']}
+        readOnlyFields={!canManageRoles ? ['id', 'created_at', 'updated_at', 'role'] : ['id', 'created_at', 'updated_at']}
       />
 
       <ConfirmModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title={userToDelete ? 'Remove Member' : 'Bulk Removal'}
-        message={userToDelete 
-          ? 'Are you sure you want to remove this member? All associated data will be archived.' 
-          : `Are you sure you want to remove ${selectedIds.length} selected members?`
-        }
-        confirmLabel="Confirm Removal"
+        title={userToDelete ? 'Delete User' : 'Bulk Delete'}
+        message="Are you sure you want to proceed? This action cannot be undone."
+        confirmLabel="Confirm"
         type="danger"
       />
     </div>

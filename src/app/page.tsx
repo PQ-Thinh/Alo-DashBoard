@@ -3,184 +3,195 @@
 import React from 'react';
 import { 
   Users, MessageSquare, PhoneCall, TrendingUp, TrendingDown, 
-  ArrowUpRight, Clock, Activity, Calendar as CalendarIcon, MoreVertical
+  ArrowUpRight, Clock, Activity, Calendar as CalendarIcon, 
+  Target, Zap, Globe, ArrowRight
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell
+  BarChart, Bar, Cell
 } from 'recharts';
 import { motion } from 'framer-motion';
 
-const data = [
-  { name: 'Mon', users: 400, messages: 2400 },
-  { name: 'Tue', users: 300, messages: 1398 },
-  { name: 'Wed', users: 600, messages: 9800 },
-  { name: 'Thu', users: 400, messages: 3908 },
-  { name: 'Fri', users: 700, messages: 4800 },
-  { name: 'Sat', users: 500, messages: 3800 },
-  { name: 'Sun', users: 900, messages: 4300 },
+const areaData = [
+  { name: 'Mon', active: 2400, new: 1400 },
+  { name: 'Tue', active: 1398, new: 1800 },
+  { name: 'Wed', active: 9800, new: 2400 },
+  { name: 'Thu', active: 3908, new: 2800 },
+  { name: 'Fri', active: 4800, new: 3200 },
+  { name: 'Sat', active: 3800, new: 4000 },
+  { name: 'Sun', active: 4300, new: 4500 },
 ];
 
-const pieData = [
-  { name: 'Active', value: 70, color: '#000000' },
-  { name: 'Inactive', value: 30, color: '#e5e5e5' },
+const barData = [
+  { name: 'US', value: 4000 },
+  { name: 'UK', value: 3000 },
+  { name: 'VN', value: 2000 },
+  { name: 'JP', value: 2780 },
+  { name: 'DE', value: 1890 },
 ];
 
-const StatCard = ({ title, value, trend, icon: Icon }: any) => (
-  <motion.div 
-    whileHover={{ y: -2 }}
-    className="bg-surface-base p-8 rounded-2xl border border-surface-border shadow-sm transition-all group"
-  >
-    <div className="flex justify-between items-start mb-6">
-      <div className="w-12 h-12 bg-foreground text-background-base rounded-xl flex items-center justify-center">
-        <Icon size={24} />
+const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
+  <div className="card-base group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+    <div className="flex justify-between items-start mb-4">
+      <div className={`p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 text-zinc-950 dark:text-white border border-zinc-200 dark:border-zinc-800`}>
+        <Icon size={20} />
       </div>
-      <div className={`flex items-center gap-1 text-xs font-black tracking-tighter ${trend > 0 ? 'text-foreground' : 'opacity-40'}`}>
-        {trend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-        {Math.abs(trend)}%
+      <div className={`flex items-center gap-1 text-xs font-bold ${change > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+        {change > 0 ? '+' : ''}{change}%
       </div>
     </div>
-    <p className="text-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{title}</p>
-    <h3 className="text-3xl font-black text-foreground tracking-tighter">{value}</h3>
-  </motion.div>
+    <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{title}</p>
+    <div className="flex items-baseline gap-2 mt-1">
+      <h3 className="text-2xl font-black text-zinc-950 dark:text-white tracking-tight">{value}</h3>
+    </div>
+  </div>
 );
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-10 pb-20 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-8 animate-in pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter text-foreground">Overview</h1>
-          <p className="text-foreground/40 font-medium mt-2">Activity and performance metrics for your system.</p>
+          <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white">Dashboard Overview</h1>
+          <p className="text-zinc-500 font-medium text-sm mt-1">Monitor your system performance and user engagement in real-time.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="px-5 py-2.5 bg-foreground text-background-base rounded-lg text-sm font-bold transition-all hover:opacity-80">
-            Generate Report
+        <div className="flex gap-2">
+          <button className="btn-secondary text-sm font-bold">
+            Last 30 Days
           </button>
-          <button className="p-2.5 bg-surface-base border border-surface-border rounded-lg text-foreground hover:bg-foreground/5 transition-all">
-            <MoreVertical size={20} />
+          <button className="btn-primary text-sm flex items-center gap-2">
+            Download Report
+            <ArrowUpRight size={16} />
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Users" value="12,543" trend={12.5} icon={Users} />
-        <StatCard title="Messages" value="45.2k" trend={8.2} icon={MessageSquare} />
-        <StatCard title="Calls" value="1,280" trend={-2.4} icon={PhoneCall} />
-        <StatCard title="Avg. Uptime" value="99.9%" trend={0.1} icon={Activity} />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Users" value="24,512" change={12} icon={Users} />
+        <StatCard title="Engagement" value="84.2%" change={5.4} icon={Zap} />
+        <StatCard title="Total Volume" value="$12.4k" change={-2.1} icon={Target} />
+        <StatCard title="Global Reach" value="142" change={8} icon={Globe} />
       </div>
 
-      {/* Main Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-surface-base p-10 rounded-3xl border border-surface-border shadow-sm">
-          <div className="flex items-center justify-between mb-10">
-            <h3 className="text-xl font-black tracking-tighter">Growth Analytics</h3>
+        <div className="lg:col-span-2 card-base">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-lg font-black tracking-tight">Traffic Analysis</h3>
+              <p className="text-xs text-zinc-500 font-medium mt-0.5">Daily active users vs new signups</p>
+            </div>
             <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-foreground"></div>
-                <span className="text-xs font-bold text-foreground/40 italic">New Users</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-zinc-950 dark:bg-white"></div>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Active</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-zinc-400"></div>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">New</span>
               </div>
             </div>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
+              <AreaChart data={areaData}>
                 <defs>
-                  <linearGradient id="colorMono" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="currentColor" stopOpacity={0.1}/>
                     <stop offset="95%" stopColor="currentColor" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'currentColor', fontSize: 10, fontWeight: 'bold', opacity: 0.3}} dy={15} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: 'currentColor', fontSize: 10, fontWeight: 'bold', opacity: 0.3}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#a1a1aa', fontSize: 10, fontWeight: 600}} dy={15} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#a1a1aa', fontSize: 10, fontWeight: 600}} />
                 <Tooltip 
-                  cursor={{stroke: 'currentColor', strokeWidth: 1, strokeDasharray: '4 4'}}
-                  contentStyle={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '12px', boxShadow: 'var(--shadow-premium)' }}
-                  labelStyle={{ fontWeight: 'black', color: 'var(--foreground)', marginBottom: '4px' }}
+                  contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: 'var(--shadow-md)' }}
+                  itemStyle={{ fontSize: '11px', fontWeight: '600' }}
                 />
-                <Area type="monotone" dataKey="users" stroke="currentColor" strokeWidth={3} fillOpacity={1} fill="url(#colorMono)" />
+                <Area type="monotone" dataKey="active" stroke="currentColor" strokeWidth={2.5} fillOpacity={1} fill="url(#colorMain)" className="text-zinc-950 dark:text-white" />
+                <Area type="monotone" dataKey="new" stroke="#a1a1aa" strokeWidth={2} fill="transparent" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-surface-base p-10 rounded-3xl border border-surface-border shadow-sm flex flex-col items-center justify-center text-center">
-          <h3 className="text-xl font-black tracking-tighter mb-10">Platform Distribution</h3>
-          <div className="h-[200px] w-full">
+        <div className="card-base flex flex-col">
+          <h3 className="text-lg font-black tracking-tight mb-6">Top Regions</h3>
+          <div className="flex-1 h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={10}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+              <BarChart data={barData} layout="vertical" margin={{left: -20}}>
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#a1a1aa', fontSize: 11, fontWeight: 600}} />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                  {barData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === 0 ? 'currentColor' : '#e4e4e7'} className="dark:fill-zinc-800" />
                   ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-10 space-y-2 w-full">
-            <div className="flex justify-between items-center px-4 py-2 bg-foreground/5 rounded-lg">
-              <span className="text-xs font-bold text-foreground/40">Mobile</span>
-              <span className="text-sm font-black text-foreground">70%</span>
-            </div>
-            <div className="flex justify-between items-center px-4 py-2 bg-foreground/5 rounded-lg">
-              <span className="text-xs font-bold text-foreground/40">Desktop</span>
-              <span className="text-sm font-black text-foreground">30%</span>
-            </div>
+          <div className="mt-4 space-y-3">
+            {barData.map((item, i) => (
+              <div key={item.name} className="flex items-center justify-between group cursor-default">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-zinc-400">0{i+1}</span>
+                  <span className="text-sm font-bold text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-950 dark:group-hover:text-white transition-colors">{item.name}</span>
+                </div>
+                <span className="text-sm font-black tracking-tight">{item.value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Activity Timeline */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-base p-10 rounded-3xl border border-surface-border shadow-sm">
-          <h3 className="text-xl font-black tracking-tighter mb-8 flex items-center gap-2">
-            Recent Activity
-          </h3>
-          <div className="space-y-8 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-foreground/5">
+      {/* Bottom Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="card-base">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-black tracking-tight">Recent Activity</h3>
+            <button className="text-xs font-bold text-zinc-500 hover:text-zinc-950 dark:hover:text-white flex items-center gap-1 transition-all">
+              View All <ArrowRight size={14} />
+            </button>
+          </div>
+          <div className="space-y-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex gap-6 relative">
-                <div className="w-10 h-10 rounded-full bg-foreground text-background-base flex items-center justify-center shrink-0 z-10 border-4 border-background-base">
-                  <Clock size={16} />
+              <div key={i} className="flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-800">
+                  <Clock size={14} className="text-zinc-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground">New member joined the team</p>
-                  <p className="text-xs text-foreground/40 font-medium mt-1">2 hours ago</p>
+                  <p className="text-sm font-bold text-zinc-950 dark:text-white">New deployment successful</p>
+                  <p className="text-xs text-zinc-500 font-medium mt-0.5">Frontend production branch was updated by @thinh</p>
+                  <span className="text-[10px] text-zinc-400 mt-2 block">12 minutes ago</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-surface-base p-10 rounded-3xl border border-surface-border shadow-sm">
-          <h3 className="text-xl font-black tracking-tighter mb-8 flex items-center gap-2">
-            System Status
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-6 rounded-2xl bg-foreground text-background-base flex flex-col justify-between h-40">
-              <Activity size={24} />
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Server Load</p>
-                <p className="text-2xl font-black tracking-tight">Normal</p>
+        <div className="card-base">
+          <h3 className="text-lg font-black tracking-tight mb-6">System Status</h3>
+          <div className="space-y-3">
+            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">API Gateway</span>
               </div>
+              <span className="badge badge-success">Healthy</span>
             </div>
-            <div className="p-6 rounded-2xl bg-foreground/5 border border-surface-border flex flex-col justify-between h-40">
-              <ArrowUpRight size={24} />
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">API Status</p>
-                <p className="text-2xl font-black tracking-tight text-foreground">99.9%</p>
+            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Database Cluster</span>
               </div>
+              <span className="badge badge-success">Healthy</span>
+            </div>
+            <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Worker Node 03</span>
+              </div>
+              <span className="badge bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">Delayed</span>
             </div>
           </div>
         </div>

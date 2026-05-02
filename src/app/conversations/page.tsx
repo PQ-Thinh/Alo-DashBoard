@@ -1,39 +1,61 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { ChatController } from '@/controllers/chat.controller';
-import { ChatListView } from '@/models/chat.model';
+import { supabase } from '@/lib/supabase/client';
 import DataTable, { Column } from '@/components/common/DataTable';
-import FilterBar from '@/components/common/FilterBar';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EntityModal from '@/components/common/EntityModal';
-import { Trash2, MessageSquare, Users, Clock, Hash } from 'lucide-react';
+import { Trash2, MessageSquare, Users, Calendar, Search, Filter, Hash, Image as ImageIcon } from 'lucide-react';
 
 export default function ConversationsPage() {
-  const [conversations, setConversations] = useState<ChatListView[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [convToDelete, setConvToDelete] = useState<string | null>(null);
-  const [selectedConv, setSelectedConv] = useState<ChatListView | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
   const [options, setOptions] = useState({
     query: '',
-    type: undefined as 'group' | 'direct' | undefined,
-    sortBy: 'last_message_time',
+    isGroup: undefined as boolean | undefined,
+    sortBy: 'created_at',
     order: 'desc' as 'asc' | 'desc',
-    limit: 10,
+    limit: 5,
     offset: 0
   });
 
   const fetchConversations = useCallback(async () => {
-    setIsLoading(true);
-    const { data, count } = await ChatController.searchConversations(options);
-    setConversations(data);
-    setTotalCount(count);
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      let query = supabase
+        .from('conversations')
+        .select('*', { count: 'exact' });
+
+      if (options.query) {
+        query = query.ilike('name', `%${options.query}%`);
+      }
+
+      if (options.isGroup !== undefined) {
+        query = query.eq('is_group', options.isGroup);
+      }
+
+      const { data, count, error } = await query
+        .order(options.sortBy, { ascending: options.order === 'asc' })
+        .range(options.offset, options.offset + options.limit - 1);
+
+      if (error) {
+        console.error('Supabase Error:', error);
+      } else {
+        setConversations(data || []);
+        setTotalCount(count || 0);
+      }
+    } catch (err) {
+      console.error('Fetch Error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [options]);
 
   useEffect(() => {
@@ -44,86 +66,35 @@ export default function ConversationsPage() {
     setOptions(prev => ({ ...prev, query, offset: 0 }));
   };
 
-  const handleFilterChange = (key: string, value: string) => {
-    if (key === 'type') {
-      setOptions(prev => ({ ...prev, type: value as any || undefined, offset: 0 }));
-    }
-  };
-
-  const handleSort = (key: string, order: 'asc' | 'desc') => {
-    setOptions(prev => ({ ...prev, sortBy: key, order }));
-  };
-
-  const handleRowSelect = (ids: string[]) => {
-    setSelectedIds(ids);
-  };
-
-  const handleRowClick = (conv: ChatListView) => {
-    setSelectedConv(conv);
-  };
-
-  const handleDeleteClick = (id: string) => {
-    setConvToDelete(id);
-    setIsDeleteModalOpen(true);
+  const handleFilterChange = (val: string) => {
+    const isGroup = val === '' ? undefined : val === 'true';
+    setOptions(prev => ({ ...prev, isGroup, offset: 0 }));
   };
 
   const confirmDelete = async () => {
-    if (convToDelete) {
-      const success = await ChatController.deleteConversation(convToDelete);
-      if (success) fetchConversations();
-    } else if (selectedIds.length > 0) {
-      const success = await ChatController.bulkDeleteConversations(selectedIds);
-      if (success) {
-        setSelectedIds([]);
-        fetchConversations();
-      }
-    }
+    const idsToDelete = itemToDelete ? [itemToDelete] : selectedIds;
+    const { error } = await supabase.from('conversations').delete().in('id', idsToDelete);
+    if (!error) fetchConversations();
+    setIsDeleteModalOpen(false);
   };
 
-  const columns: Column<ChatListView>[] = [
+  const columns: Column<any>[] = [
     { 
-      key: 'chat_name', 
+      key: 'name', 
       header: 'Conversation', 
-      sortable: true,
       render: (conv) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ 
-            width: '32px', 
-            height: '32px', 
-            borderRadius: conv.is_group ? '8px' : '50%', 
-            background: conv.is_group ? 'rgba(139, 92, 246, 0.2)' : 'rgba(59, 130, 246, 0.2)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            color: conv.is_group ? '#8b5cf6' : '#3b82f6'
-          }}>
-            {conv.chat_avatar ? <img src={conv.chat_avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: conv.is_group ? '8px' : '50%', objectFit: 'cover' }} /> : (conv.is_group ? <Users size={16} /> : <MessageSquare size={16} />)}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-700">
+            {conv.avatar_url ? (
+              <img src={conv.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              conv.is_group ? <Users size={18} className="text-zinc-500" /> : <MessageSquare size={18} className="text-zinc-500" />
+            )}
           </div>
-          <div>
-            <div style={{ fontWeight: 600 }}>{conv.chat_name || 'Unnamed Conversation'}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {conv.is_group ? <span style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', padding: '0 4px', borderRadius: '4px' }}>Group</span> : <span>Direct</span>}
-            </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-zinc-950 dark:text-white text-sm">{conv.name || (conv.is_group ? 'Unnamed Group' : 'Direct Chat')}</span>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{conv.is_group ? 'Group' : 'Direct'}</span>
           </div>
-        </div>
-      )
-    },
-    { 
-      key: 'unread_count', 
-      header: 'Unread', 
-      sortable: true,
-      render: (conv) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ 
-            background: conv.unread_count > 0 ? '#ef4444' : 'rgba(255,255,255,0.05)', 
-            color: conv.unread_count > 0 ? 'white' : '#64748b',
-            padding: '2px 8px',
-            borderRadius: '12px',
-            fontSize: '0.75rem',
-            fontWeight: 700
-          }}>
-            {conv.unread_count}
-          </span>
         </div>
       )
     },
@@ -131,15 +102,8 @@ export default function ConversationsPage() {
       key: 'last_message_preview', 
       header: 'Last Message', 
       render: (conv) => (
-        <div style={{ 
-          color: 'var(--text-secondary)', 
-          fontSize: '0.85rem',
-          maxWidth: '250px',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        }}>
-          {conv.last_message_preview || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>No messages yet</span>}
+        <div className="max-w-[200px] truncate text-xs text-zinc-700 dark:text-zinc-400 font-medium italic">
+          {conv.last_message_preview || 'No messages yet'}
         </div>
       )
     },
@@ -148,72 +112,84 @@ export default function ConversationsPage() {
       header: 'Activity', 
       sortable: true,
       render: (conv) => (
-        <div style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Clock size={14} style={{ opacity: 0.5 }} />
+        <div className="text-xs text-zinc-600 dark:text-zinc-500 font-medium">
           {conv.last_message_time ? new Date(conv.last_message_time).toLocaleString() : 'N/A'}
+        </div>
+      )
+    },
+    { 
+      key: 'created_at', 
+      header: 'Created', 
+      sortable: true,
+      render: (conv) => (
+        <div className="text-xs text-zinc-600 dark:text-zinc-500 font-medium">
+          {new Date(conv.created_at).toLocaleDateString()}
         </div>
       )
     }
   ];
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Conversations</h1>
-        <p className="page-description">Oversee all chats, filter by group or direct type, and manage communication channels.</p>
+    <div className="space-y-6 animate-in pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white">Conversations</h1>
+          <p className="text-zinc-500 font-medium text-sm mt-0.5">Manage group chats and private communication channels.</p>
+        </div>
       </div>
 
-      <FilterBar 
-        onSearch={handleSearch}
-        filters={[
-          {
-            key: 'type',
-            label: 'Type',
-            options: [
-              { label: 'Group Chats', value: 'group' },
-              { label: 'Direct Messages', value: 'direct' }
-            ]
-          }
-        ]}
-        onFilterChange={handleFilterChange}
-        onReset={() => setOptions({ query: '', type: undefined, sortBy: 'last_message_time', order: 'desc', limit: 10, offset: 0 })}
-      />
+      <div className="flex flex-col md:flex-row items-center gap-3 bg-white dark:bg-zinc-950 p-3 rounded-xl border border-border shadow-sm">
+        <div className="relative flex-1 group w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-zinc-950 dark:group-focus-within:text-white transition-colors" size={15} />
+          <input 
+            type="text" 
+            placeholder="Search by name..." 
+            className="w-full h-10 pl-10 pr-4 bg-zinc-100 dark:bg-zinc-900 border-transparent focus:bg-white dark:focus:bg-zinc-950 border focus:border-zinc-200 dark:focus:border-zinc-800 rounded-lg text-sm outline-none transition-all"
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+        </div>
+        <select 
+          className="h-10 px-4 bg-zinc-100 dark:bg-zinc-900 border-transparent rounded-lg text-sm font-bold text-zinc-600 outline-none cursor-pointer w-full md:w-auto"
+          onChange={(e) => handleFilterChange(e.target.value)}
+        >
+          <option value="">All Types</option>
+          <option value="true">Groups</option>
+          <option value="false">Direct</option>
+        </select>
+      </div>
 
-      <DataTable 
-        columns={columns as any}
-        data={conversations}
-        isLoading={isLoading}
-        onSort={handleSort}
-        onRowSelect={handleRowSelect}
-        onRowClick={handleRowClick}
-        totalCount={totalCount}
-        pageSize={options.limit}
-        currentPage={Math.floor(options.offset / options.limit) + 1}
-        onPageChange={(page) => setOptions(prev => ({ ...prev, offset: (page - 1) * options.limit }))}
-        keyField="conversation_id"
-        actions={(conv) => (
-          <button 
-            className="icon-btn danger" 
-            onClick={(e) => { e.stopPropagation(); handleDeleteClick(conv.conversation_id); }}
-            title="Delete Conversation"
-          >
-            <Trash2 size={18} />
-          </button>
-        )}
-      />
+      <div className="bg-white dark:bg-zinc-950 rounded-xl border border-border shadow-sm overflow-hidden">
+        <DataTable 
+          columns={columns}
+          data={conversations}
+          isLoading={isLoading}
+          onSort={(key, order) => setOptions(prev => ({ ...prev, sortBy: key, order }))}
+          onRowSelect={setSelectedIds}
+          onRowClick={setSelectedItem}
+          totalCount={totalCount}
+          pageSize={options.limit}
+          currentPage={Math.floor(options.offset / options.limit) + 1}
+          onPageChange={(page) => setOptions(prev => ({ ...prev, offset: (page - 1) * options.limit }))}
+          actions={(conv) => (
+            <button 
+              className="p-2 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all" 
+              onClick={(e) => { e.stopPropagation(); { setItemToDelete(conv.id); setIsDeleteModalOpen(true); } }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        />
+      </div>
 
       <ActionToolbar 
         selectedCount={selectedIds.length}
-        onDelete={() => {
-          setConvToDelete(null);
-          setIsDeleteModalOpen(true);
-        }}
+        onDelete={() => { setItemToDelete(null); setIsDeleteModalOpen(true); }}
       />
 
       <EntityModal 
-        isOpen={!!selectedConv}
-        onClose={() => setSelectedConv(null)}
-        entity={selectedConv}
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+        entity={selectedItem}
         title="Conversation Details"
       />
 
@@ -221,8 +197,8 @@ export default function ConversationsPage() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title={convToDelete ? 'Delete Conversation' : 'Bulk Delete'}
-        message="Are you sure you want to delete the selected conversation(s)? This will remove all message history for all participants."
+        title="Delete Conversation"
+        message="Are you sure? This will remove the conversation and all its messages for all participants."
         confirmLabel="Delete"
         type="danger"
       />

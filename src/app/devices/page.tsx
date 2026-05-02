@@ -7,7 +7,7 @@ import DataTable, { Column } from '@/components/common/DataTable';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import EntityModal from '@/components/common/EntityModal';
-import { Trash2, Smartphone, Bell, Calendar, Search, Cpu } from 'lucide-react';
+import { Trash2, Smartphone, Bell, Calendar, Search, Filter } from 'lucide-react';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState<UserDevice[]>([]);
@@ -27,11 +27,16 @@ export default function DevicesPage() {
   });
 
   const fetchDevices = useCallback(async () => {
-    setIsLoading(true);
-    const { data, count } = await UserController.getDevices(options);
-    setDevices(data);
-    setTotalCount(count);
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const { data, count } = await UserController.getDevices(options);
+      setDevices(data);
+      setTotalCount(count);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [options]);
 
   useEffect(() => {
@@ -63,90 +68,95 @@ export default function DevicesPage() {
   const columns: Column<UserDevice>[] = [
     { 
       key: 'device_name', 
-      header: 'Thiết bị', 
+      header: 'Device', 
       sortable: true,
       render: (device) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-            <Smartphone size={20} />
+          <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-200 dark:border-zinc-700">
+            <Smartphone size={18} />
           </div>
           <div>
-            <div className="font-bold text-slate-900 dark:text-white leading-tight">{device.device_name || 'Thiết bị không tên'}</div>
-            <div className="text-xs text-slate-500 font-medium tracking-wider uppercase">ID: {device.id.substring(0, 8)}</div>
+            <div className="font-bold text-zinc-950 dark:text-white text-sm">{device.device_name || 'Unnamed Device'}</div>
+            <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">ID: {device.id.substring(0, 8)}</div>
           </div>
         </div>
       )
     },
     { 
       key: 'user_id', 
-      header: 'ID Người dùng', 
-      render: (device) => <div className="text-sm font-mono text-slate-500">{device.user_id}</div>
+      header: 'User ID', 
+      render: (device) => <div className="text-sm font-mono text-zinc-700 dark:text-zinc-400">{device.user_id}</div>
     },
     { 
       key: 'fcm_token', 
       header: 'FCM Token', 
       render: (device) => (
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium italic">
+        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-500 font-medium italic">
           <Bell size={12} className="opacity-50" />
-          <span className="max-w-[200px] truncate">{device.fcm_token}</span>
+          <span className="max-w-[150px] truncate">{device.fcm_token}</span>
         </div>
       )
     },
     { 
       key: 'created_at', 
-      header: 'Ngày đăng ký', 
+      header: 'Registered', 
       sortable: true,
       render: (device) => (
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
-          <Calendar size={14} className="opacity-50" />
-          {device.created_at ? new Date(device.created_at).toLocaleDateString('vi-VN') : 'N/A'}
-        </div>
+        <span className="text-zinc-600 dark:text-zinc-500 font-medium text-xs">
+          {device.created_at ? new Date(device.created_at).toLocaleDateString() : 'N/A'}
+        </span>
       )
     }
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div className="space-y-6 animate-in pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Quản lý thiết bị</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Giám sát các thiết bị đã đăng ký nhận thông báo đẩy.</p>
+          <h1 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white">Device Management</h1>
+          <p className="text-zinc-500 font-medium text-sm mt-0.5">Monitor and manage registered push notification devices.</p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+      <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 p-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 shadow-md">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-zinc-950 dark:group-focus-within:text-white transition-colors" size={15} />
           <input 
             type="text" 
-            placeholder="Tìm kiếm thiết bị hoặc token..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm transition-all"
+            placeholder="Search by device or token..." 
+            className="w-full h-10 pl-10 pr-4 bg-zinc-100 dark:bg-zinc-950 border-transparent focus:bg-white dark:focus:bg-zinc-900 border focus:border-zinc-300 dark:focus:border-zinc-700 rounded-lg text-sm outline-none transition-all font-medium"
             onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
+        <button className="h-10 px-4 flex items-center gap-2 bg-zinc-100 dark:bg-zinc-950 border-2 border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 rounded-lg text-sm font-bold text-zinc-600 dark:text-zinc-400 transition-all">
+          <Filter size={14} />
+          <span>Filters</span>
+        </button>
       </div>
 
-      <DataTable 
-        columns={columns}
-        data={devices}
-        isLoading={isLoading}
-        onSort={handleSort}
-        onRowSelect={setSelectedIds}
-        onRowClick={setSelectedDevice}
-        totalCount={totalCount}
-        pageSize={options.limit}
-        currentPage={Math.floor(options.offset / options.limit) + 1}
-        onPageChange={(page) => setOptions(prev => ({ ...prev, offset: (page - 1) * options.limit }))}
-        actions={(device) => (
-          <button 
-            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all" 
-            onClick={(e) => { e.stopPropagation(); setDeviceToDelete(device.id); setIsDeleteModalOpen(true); }}
-            title="Xóa thiết bị"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-      />
+      <div className="bg-white dark:bg-zinc-900 rounded-xl overflow-hidden">
+        <DataTable 
+          columns={columns}
+          data={devices}
+          isLoading={isLoading}
+          onSort={handleSort}
+          onRowSelect={setSelectedIds}
+          onRowClick={setSelectedDevice}
+          totalCount={totalCount}
+          pageSize={options.limit}
+          currentPage={Math.floor(options.offset / options.limit) + 1}
+          onPageChange={(page) => setOptions(prev => ({ ...prev, offset: (page - 1) * options.limit }))}
+          actions={(device) => (
+            <button 
+              className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-xl transition-all" 
+              onClick={(e) => { e.stopPropagation(); setDeviceToDelete(device.id); setIsDeleteModalOpen(true); }}
+              title="Delete Device"
+            >
+              <Trash2 size={16} strokeWidth={2.5} />
+            </button>
+          )}
+        />
+      </div>
 
       <ActionToolbar 
         selectedCount={selectedIds.length}
@@ -157,16 +167,16 @@ export default function DevicesPage() {
         isOpen={!!selectedDevice}
         onClose={() => setSelectedDevice(null)}
         entity={selectedDevice}
-        title="Chi tiết thiết bị"
+        title="Device Details"
       />
 
       <ConfirmModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title={deviceToDelete ? 'Xóa thiết bị' : 'Xóa hàng loạt'}
-        message="Bạn có chắc chắn muốn xóa thiết bị này? Người dùng sẽ không nhận được thông báo đẩy trên thiết bị này cho đến khi đăng ký lại."
-        confirmLabel="Xóa ngay"
+        title={deviceToDelete ? 'Delete Device' : 'Bulk Delete'}
+        message="Are you sure you want to delete this device? Users will not receive push notifications on this device until they re-register."
+        confirmLabel="Confirm"
         type="danger"
       />
     </div>
